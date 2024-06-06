@@ -1,3 +1,7 @@
 streamlit
 subprocess
 shutil
+numpy
+pandas
+ydata_profiling
+streamlit_pandas_profiling

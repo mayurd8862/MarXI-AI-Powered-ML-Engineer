@@ -17,6 +17,7 @@
 import streamlit as st
 import os
 from utils.github_setup import copy_MarXI_archive
+from utils.EDA import data_analysis
 
 st.title("🤖MarXI: AI powered ML engineer")
 
@@ -27,7 +28,7 @@ project_path = os.path.join(parent_path,'project')
 
 data = st.file_uploader("📤 Upload a CSV file", type="csv")
 if data:
-    st.success('CSV file uploaded Successfully!', icon='✅')
+    st.success('CSV file uploaded Successfully!', icon='✔️')
 
 
 
@@ -42,8 +43,10 @@ st.session_state.option = option
 
 
 if option == 'Analysis':
-    st.button("EDA")
-    pass
+    st.markdown("**📉 Exploratory Data analysis**")
+    if st.button("EDA"):
+        data_analysis(data)
+    # pass
 
 
 else:
@@ -59,5 +62,6 @@ else:
 
 st.session_state
 
-repository_url = 'https://github.com/mayurd8862/MarXI-Archive.git'
-copy_MarXI_archive(repository_url,project_path)
+
+# repository_url = 'https://github.com/mayurd8862/MarXI-Archive.git'
+# copy_MarXI_archive(repository_url,project_path)

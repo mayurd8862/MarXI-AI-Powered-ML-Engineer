@@ -18,13 +18,16 @@ import streamlit as st
 import os
 from utils.github_setup import copy_MarXI_archive
 from utils.EDA import data_analysis
+from utils.save_csv import save_uploaded_file
+import subprocess
+import shutil
 
 st.title("🤖MarXI: AI powered ML engineer")
 
 
 parent_path = os.path.dirname(os.getcwd())
 project_path = os.path.join(parent_path,'project')
-
+project_path = os.path.join(parent_path,'project')
 
 data = st.file_uploader("📤 Upload a CSV file", type="csv")
 if data:
@@ -58,6 +61,41 @@ else:
 
     project_desc = st.text_area("📇 Enter project description: ", placeholder = "Ex. Develop a machine learning model to predict house prices, facilitating informed decisions for buyers, sellers, and real estate professionals.")
     st.session_state.project_desc = project_desc
+
+
+    if st.button("🛠️ Build"):
+
+        st.write("\n🌱 Started Building Your Project:")
+
+        with st.spinner("project setup..."):
+            # repository_url = 'https://github.com/mayurd8862/MarXI-Archive.git'
+            repository_url = 'https://github.com/mayurd8862/MarXI-Archive.git'
+            copy_MarXI_archive(repository_url,project_path)
+
+            # copy_MarXI_archive(repository_url)
+            file = os.path.join(project_path, 'template.py')
+            subprocess.run(['python', file], cwd=project_path)
+
+            if option == 'Classification Model':
+                shutil.rmtree()
+                pass
+
+            elif option == 'Predictive Model':
+                pass
+
+        st.write("✔️1. Project folder created and done with the files setup.")
+
+
+        with st.spinner("Saving project info..."):
+            data_path = os.path.join(project_path,'data')
+            if data is not None:
+            # Save the uploaded file
+                save_uploaded_file(data, data_path)
+
+        st.write("✔️2. Saved uploaded CSV file.")
+
+
+
 
 
 st.session_state

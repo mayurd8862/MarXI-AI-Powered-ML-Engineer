@@ -23,6 +23,8 @@ from utils.create_env import *
 import subprocess
 import shutil
 
+github_key= st.secrets.GITHUB_SECRET_KEY
+
 st.title("🤖MarXI: AI powered ML engineer")
 
 
@@ -105,7 +107,7 @@ else:
     
 
         with st.spinner("Creating github repository ..."):
-            access_token = "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"
+            access_token = github_key
             repo_name = project_name
             create_repo(project_path,access_token, repo_name)
 

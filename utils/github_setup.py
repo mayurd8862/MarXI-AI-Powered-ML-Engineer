@@ -3,6 +3,8 @@ import tempfile
 import subprocess
 import os
 import shutil
+from github import Github
+
 
 def copy_MarXI_archive(repo_url, path):
     try:
@@ -40,3 +42,44 @@ def copy_MarXI_archive(repo_url, path):
             shutil.rmtree(temp_path, ignore_errors=True)
         except Exception as e:
             print("Error during cleanup:", e)
+
+
+def create_repo(proj_path, access_token, repo_name):
+
+    # Create the 'mlproject' directory if it doesn't exist
+    if not os.path.exists(proj_path):
+        os.makedirs(proj_path)
+
+    # Create a Github instance with the personal access token
+    g = Github(access_token)
+    
+    # Create a new repository
+    user = g.get_user()
+    repo = user.create_repo(repo_name)
+
+    # Initialize local git repository
+    os.chdir(proj_path)
+    os.system('git init')
+
+    # Add remote origin
+    os.system(f'git remote add origin {repo.clone_url}')
+
+    # Add and commit files
+    os.system('git add .')
+    os.system('git commit -m "Initial commit"')
+
+    # Push to remote repository
+    os.system('git push -u origin master')
+
+    print("Repository created successfully!")
+    # return "Repository created successfully!"
+
+
+
+def commit_push(proj_path,msg):
+    # Add and commit files
+    subprocess.run(["git", "add", "."], cwd=proj_path)
+    subprocess.run(["git", "commit", "-m", msg], cwd=proj_path)
+
+    # Push to remote repository
+    subprocess.run(["git", "push", "-u", "origin", "master"], cwd=proj_path)

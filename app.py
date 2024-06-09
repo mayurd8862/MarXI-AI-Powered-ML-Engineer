@@ -16,9 +16,10 @@
 
 import streamlit as st
 import os
-from utils.github_setup import copy_MarXI_archive
+from utils.github_setup import copy_MarXI_archive, create_repo, commit_push
 from utils.EDA import data_analysis
 from utils.save_csv import save_uploaded_file
+from utils.create_env import *
 import subprocess
 import shutil
 
@@ -68,7 +69,6 @@ else:
         st.write("\n🌱 Started Building Your Project:")
 
         with st.spinner("project setup..."):
-            # repository_url = 'https://github.com/mayurd8862/MarXI-Archive.git'
             repository_url = 'https://github.com/mayurd8862/MarXI-Archive.git'
             copy_MarXI_archive(repository_url,project_path)
 
@@ -77,7 +77,7 @@ else:
             subprocess.run(['python', file], cwd=project_path)
 
             if option == 'Classification Model':
-                shutil.rmtree()
+                # shutil.rmtree()
                 pass
 
             elif option == 'Predictive Model':
@@ -93,6 +93,24 @@ else:
                 save_uploaded_file(data, data_path)
 
         st.write("✔️2. Saved uploaded CSV file.")
+
+
+        
+        # proj = os.path.join(os.getcwd(),'project')
+        with st.spinner("Creating environment..."):
+            create_env(project_path)
+
+        st.write("✔️3. Created virtual environment for the project")
+
+    
+
+        with st.spinner("Creating github repository ..."):
+            access_token = "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"
+            repo_name = project_name
+            create_repo(project_path,access_token, repo_name)
+
+        st.write("✔️4. GitHub repo created for the project ") 
+
 
 
 

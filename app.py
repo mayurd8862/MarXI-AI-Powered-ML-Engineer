@@ -1,119 +1,114 @@
-# st.write("Flow of project")
-# st.write(
-# """
-# 1. Create separate folder for the project
-# 2. Create Virtual environment of the project 
-# 3. connect project with github repo
-# 4. take Project name from the user
-# 4. Take input data and description of data from user 
-# 5. Save raw file of the data in data folder
-# 6. provide target and feature variables from the data
-# 7. data ingestion, preprocessor, trainer
-# 8. Start Building 
-# """
-# )
-
-
 import streamlit as st
 import os
-from utils.github_setup import copy_MarXI_archive, create_repo, commit_push
-from utils.EDA import data_analysis
-from utils.save_csv import save_uploaded_file
-from utils.create_env import *
 import subprocess
 import shutil
-
-github_key= st.secrets.GITHUB_SECRET_KEY
+import pandas as pd
+# github_key= st.secrets.GITHUB_SECRET_KEY
 
 st.title("🤖MarXI: AI powered ML engineer")
 
+# Function to save the uploaded file
+def save_uploaded_file(uploaded_file):
+    # Create a directory to save the file if it doesn't exist
+    save_dir = "artifacts"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
-parent_path = os.path.dirname(os.getcwd())
-project_path = os.path.join(parent_path,'project')
-project_path = os.path.join(parent_path,'project')
-
-data = st.file_uploader("📤 Upload a CSV file", type="csv")
-if data:
-    st.success('CSV file uploaded Successfully!', icon='✔️')
-
-
-
-data_desc = st.text_area("📈 Enter dataset description: ", placeholder= "Provide information about columns in dataset, dataset source(kaggle, dataocean etc.)")
-st.session_state.data_desc = data_desc
-
-
-option = st.selectbox(
-    "How would you like to be contacted?",
-    ("Analysis", "Predictive Model", "Classification Model"))
-st.session_state.option = option
+    # Save the file to the directory with the name 'raw.csv'
+    file_path = os.path.join(save_dir, "raw.csv")
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    
+    return file_path
 
 
-if option == 'Analysis':
-    st.markdown("**📉 Exploratory Data analysis**")
-    if st.button("EDA"):
-        data_analysis(data)
-    # pass
+project_name = st.text_input("🎯 Enter the Project name here:", placeholder = 'Ex. House price prediction')
+st.session_state.project_name = project_name
 
 
-else:
+# project_desc = st.text_area("📇 Enter project description: ", placeholder = "Ex. Develop a machine learning model to predict house prices, facilitating informed decisions for buyers, sellers, and real estate professionals.")
+# st.session_state.project_desc = project_desc
 
-    # st.write("You selected:", option)
-    project_name = st.text_input("🎯 Enter the Project name here:", placeholder = 'Ex. House price prediction')
-    st.session_state.project_name = project_name
+# Create a file uploader widget
+uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
+if uploaded_file is not None:
+    # Save the file
+    file_path = save_uploaded_file(uploaded_file)
+    st.success(f"File saved to {file_path}")
 
-    project_desc = st.text_area("📇 Enter project description: ", placeholder = "Ex. Develop a machine learning model to predict house prices, facilitating informed decisions for buyers, sellers, and real estate professionals.")
-    st.session_state.project_desc = project_desc
+    # Read the CSV file
+    df = pd.read_csv(file_path)
 
+    # Display the dataframe
+    st.write("## DataFrame")
+    st.dataframe(df[:5])
 
-    if st.button("🛠️ Build"):
+    option = st.selectbox(
+        "How would you like to be contacted?",
+        ("Analysis", "Predictive Model", "Classification Model"))
+    st.session_state.option = option
 
-        st.write("\n🌱 Started Building Your Project:")
+    target = st.selectbox(
+        "Select 'TARGET' variable",
+        df.columns)
+    st.session_state.target = target
 
-        with st.spinner("project setup..."):
-            repository_url = 'https://github.com/mayurd8862/MarXI-Archive.git'
-            copy_MarXI_archive(repository_url,project_path)
+    col_drops = st.multiselect(
+        "Select columns from the dataset you want to drop",
+        df.columns,
+    )
+    st.session_state.colums_to_drop = col_drops
 
-            # copy_MarXI_archive(repository_url)
-            file = os.path.join(project_path, 'template.py')
-            subprocess.run(['python', file], cwd=project_path)
-
-            if option == 'Classification Model':
-                # shutil.rmtree()
-                pass
-
-            elif option == 'Predictive Model':
-                pass
-
-        st.write("✔️1. Project folder created and done with the files setup.")
-
-
-        with st.spinner("Saving project info..."):
-            data_path = os.path.join(project_path,'data')
-            if data is not None:
-            # Save the uploaded file
-                save_uploaded_file(data, data_path)
-
-        st.write("✔️2. Saved uploaded CSV file.")
-
-
-        
-        # proj = os.path.join(os.getcwd(),'project')
-        with st.spinner("Creating environment..."):
-            create_env(project_path)
-
-        st.write("✔️3. Created virtual environment for the project")
-
+    # st.write(col_drops)
+    col_drops.append(target)
+    if col_drops:
+        df = df.drop(columns=col_drops)
+        st.write("### Updated DataFrame after dropping columns")
+        st.dataframe(df[:5])
+        path = os.path.join('artifacts', "dropeed.csv")
+        df.to_csv(path)
     
 
-        with st.spinner("Creating github repository ..."):
-            access_token = github_key
-            repo_name = project_name
-            create_repo(project_path,access_token, repo_name)
-
-        st.write("✔️4. GitHub repo created for the project ") 
 
 
+btn = st.button("🛠️ Build")
+
+if btn:
+
+    st.write("\n🌱 Started Building Your Project:")
+
+    with st.spinner("project setup..."):
+
+        if option == 'Classification Model':
+            # shutil.rmtree()
+            pass
+
+        elif option == 'Predictive Model':
+            pass
+
+    st.write("✔️1. Project folder created and done with the files setup.")
+
+
+    with st.spinner("Saving project info..."):
+        pass
+
+    st.write("✔️2. Saved uploaded CSV file.")
+
+
+    
+    # proj = os.path.join(os.getcwd(),'project')
+    with st.spinner("Creating environment..."):
+        pass
+
+    st.write("✔️3. Created virtual environment for the project")
+
+
+
+    with st.spinner("Creating github repository ..."):
+        pass
+
+    st.write("✔️4. GitHub repo created for the project ") 
 
 
 

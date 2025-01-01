@@ -3,7 +3,7 @@ import os
 import subprocess
 import shutil
 import pandas as pd
-# github_key= st.secrets.GITHUB_SECRET_KEY
+from src.data_ingestion import data_ingestion
 
 st.title("🤖MarXI: AI powered ML engineer")
 
@@ -61,22 +61,31 @@ if uploaded_file is not None:
     st.session_state.colums_to_drop = col_drops
 
     # st.write(col_drops)
-    col_drops.append(target)
+    # col_drops.append(target)
     if col_drops:
         df = df.drop(columns=col_drops)
         st.write("### Updated DataFrame after dropping columns")
         st.dataframe(df[:5])
-        path = os.path.join('artifacts', "dropeed.csv")
-        df.to_csv(path)
+        drop_file_path = os.path.join("artifacts", "after_drop_col.csv")
+        df.to_csv(drop_file_path,index=False)
+
     
-
-
 
 btn = st.button("🛠️ Build")
 
 if btn:
 
     st.write("\n🌱 Started Building Your Project:")
+
+    with st.spinner("Data Ingestion started..."):
+        raw_file_path = os.path.join("artifacts", "raw.csv")
+        # data_ingestion(raw_file_path)
+        
+
+    st.success("✔️1. Data ingestion complete. Training and testing datasets have been saved to the artifacts folder.")
+    st.write("**Target Variable:**",target)
+    st.write("**Columns to drop before training:**",col_drops)
+
 
     with st.spinner("project setup..."):
 
@@ -87,13 +96,9 @@ if btn:
         elif option == 'Predictive Model':
             pass
 
-    st.write("✔️1. Project folder created and done with the files setup.")
+    st.success("✔️1. Project folder created and done with the files setup.")
 
 
-    with st.spinner("Saving project info..."):
-        pass
-
-    st.write("✔️2. Saved uploaded CSV file.")
 
 
     
@@ -101,14 +106,14 @@ if btn:
     with st.spinner("Creating environment..."):
         pass
 
-    st.write("✔️3. Created virtual environment for the project")
+    st.success("✔️3. Created virtual environment for the project")
 
 
 
     with st.spinner("Creating github repository ..."):
         pass
 
-    st.write("✔️4. GitHub repo created for the project ") 
+    st.success("✔️4. GitHub repo created for the project ") 
 
 
 

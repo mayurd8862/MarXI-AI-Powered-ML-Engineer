@@ -1,19 +1,135 @@
-import numpy as np
+from crewai import Agent, Task, Crew
+from crewai_tools import BaseTool
 import pandas as pd
-import streamlit as st
-#from pandas_profiling import ProfileReport
-from ydata_profiling import ProfileReport
-from streamlit_pandas_profiling import st_profile_report
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.ensemble import RandomForestRegressor
+import pickle
+import os
 
-def data_analysis(uploaded_file):
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-        pr = ProfileReport(df, explorative=True)
-        pr.to_file("Analysis.json")
-        st.header('**Input DataFrame**')
-        st.write(df)
-        st.write('---')
-        st.header('**Pandas Profiling Report**')
-        st_profile_report(pr)
-    else:
-        st.info('Awaiting for CSV file to be uploaded.')    
+from crewai import Agent, Task, Crew, Process, LLM
+from crewai_tools import CodeInterpreterTool, DirectoryReadTool
+from textwrap import dedent
+import os
+
+llm = LLM(
+    model="groq/gemma2-9b-it",
+    temperature=0.7
+)
+
+class TrainingModelTool(BaseTool):
+    name: str = "Random Forest Model Trainer"
+    description: str = "Trains a Random Forest model for house price prediction and saves it as a pickle file"
+
+    def _run(self, file_path, target_variable):
+        # Load and prepare data
+        data = pd.read_csv(file_path)
+        X = data.drop(target_variable, axis=1)
+        y = data[target_variable]
+
+        # Split the data
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        # Scale the features
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+
+        # Train Random Forest model
+        model = RandomForestRegressor(random_state=42)
+        model.fit(X_train_scaled, y_train)
+
+        # Make predictions
+        y_pred = model.predict(X_test_scaled)
+
+        # Evaluate the model
+        mse = mean_squared_error(y_test, y_pred)
+        rmse = np.sqrt(mse)
+        r2 = r2_score(y_test, y_pred)
+
+        # Feature importance
+        feature_importance = pd.DataFrame({
+            'feature': X.columns,
+            'importance': model.feature_importances_
+        }).sort_values('importance', ascending=False)
+
+        # Create 'saved_model' folder if it doesn't exist
+        os.makedirs('saved_model', exist_ok=True)
+
+        # Create 'train_test_data' folder if it doesn't exist
+        os.makedirs('train_test_data', exist_ok=True)
+
+        # Save the model as a pickle file in the 'saved_model' folder
+        model_filename = os.path.join('saved_model', 'random_forest_model.pkl')
+        with open(model_filename, 'wb') as file:
+            pickle.dump(model, file)
+
+        # Save the scaler as a pickle file in the 'saved_model' folder
+        scaler_filename = os.path.join('saved_model', 'scaler.pkl')
+        with open(scaler_filename, 'wb') as file:
+            pickle.dump(scaler, file)
+
+        # Save train and test data in the 'train_test_data' folder
+        train_data = pd.concat([X_train, y_train], axis=1)
+        test_data = pd.concat([X_test, y_test], axis=1)
+        
+        train_filename = os.path.join('train_test_data', 'train_data.csv')
+        test_filename = os.path.join('train_test_data', 'test_data.csv')
+        
+        train_data.to_csv(train_filename, index=False)
+        test_data.to_csv(test_filename, index=False)
+
+        report = f"Random Forest Model Training Report:\n\n"
+        report += f"Root Mean Squared Error: ${rmse:.2f}\n"
+        report += f"R-squared Score: {r2:.4f}\n\n"
+        report += "Top 5 Important Features:\n"
+        for _, row in feature_importance.head().iterrows():
+            report += f"- {row['feature']}: {row['importance']:.4f}\n"
+        report += f"\nModel saved as: {os.path.abspath(model_filename)}\n"
+        report += f"Scaler saved as: {os.path.abspath(scaler_filename)}\n"
+        report += f"Train data saved as: {os.path.abspath(train_filename)}\n"
+        report += f"Test data saved as: {os.path.abspath(test_filename)}\n"
+
+        return report
+    
+# from tools.model_training_tool import TrainingModelTool
+from crewai_tools import DirectoryReadTool
+
+# tool to access data in the folder
+docs_tool_b = DirectoryReadTool(directory='artifacts/engineered_features.csv')
+
+# initialize the tool
+model_training_tool = TrainingModelTool()
+
+def model_training_agent(self):
+    return Agent(
+        role="Random Forest Model Trainer",
+        goal="Train an Random Forest model for the dataset",
+        backstory="You are an expert in machine learning, specializing in Random Forest for regression/classification tasks.",
+        tools=[docs_tool_b, model_training_tool],
+        llm=llm
+    )
+
+
+target_variable= input(
+    dedent('price'))
+
+model_training_task = Task(
+    description=dedent(f"""
+    Load the processed data from the directory. Train a Random Forest model and save the trained model.
+    Note that TrainingModelTool._run() has two positional arguments which are file_path and the {target_variable}
+    """),
+    expected_output="Model trained successfully",
+    output_file='reports/training_report.txt',
+    agent=model_training_agent,
+)
+
+crew = Crew(
+    agents=[model_training_agent],
+    tasks=[model_training_task],
+    verbose=2
+)
+
+result = crew.kickoff()
